@@ -52,29 +52,33 @@ def generate_launch_description():
             package='image_proc',
             plugin='image_proc::DebayerNode',
             name='debayer_node',
-            namespace=LaunchConfiguration('namespace'),
+            namespace=[LaunchConfiguration('namespace'),'debayer'],
+            remappings=[
+                ('image_raw', '/image_raw'),
+            ]
         ),
         ComposableNode(
             package='image_proc',
             plugin='image_proc::RectifyNode',
             name='rectify_mono_node',
-            namespace=LaunchConfiguration('namespace'),
+            namespace=[LaunchConfiguration('namespace'),'/mono'],
             # Remap subscribers and publishers
             remappings=[
-                ('image', 'image_mono'),
-                ('camera_info', 'camera_info'),
-                ('image_rect', 'image_rect')
+                ('image', [LaunchConfiguration('namespace'),'/debayer/image_mono']),
+                ('camera_info', '/camera_info'),
+                #('image_rect', 'rect_mono/image')
             ],
         ),
         ComposableNode(
             package='image_proc',
             plugin='image_proc::RectifyNode',
             name='rectify_color_node',
-            namespace=LaunchConfiguration('namespace'),
+            namespace=[LaunchConfiguration('namespace'),'/color'],
             # Remap subscribers and publishers
             remappings=[
-                ('image', 'image_color'),
-                ('image_rect', 'image_rect_color')
+                ('image', [LaunchConfiguration('namespace'),'/debayer/image_color']),
+                #('image_rect', 'rect_color'),
+                ('camera_info', '/camera_info')
             ],
         )
     ]

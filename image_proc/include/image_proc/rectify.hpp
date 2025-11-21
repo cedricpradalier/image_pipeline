@@ -57,7 +57,7 @@ private:
   int queue_size_;
   int interpolation;
   std::mutex connect_mutex_;
-  image_transport::Publisher pub_rect_;
+  image_transport::CameraPublisher pub_rect_;
 
   // Processing state (note: only safe because we're using single-threaded NodeHandle!)
   image_geometry::PinholeCameraModel model_;

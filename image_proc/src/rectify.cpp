@@ -54,7 +54,7 @@ RectifyNode::RectifyNode(const rclcpp::NodeOptions & options)
   auto qos_profile = getTopicQosProfile(this, "image");
   queue_size_ = this->declare_parameter("queue_size", 5);
   interpolation = this->declare_parameter("interpolation", 1);
-  pub_rect_ = image_transport::create_publisher(this, "image_rect");
+  pub_rect_ = image_transport::create_camera_publisher(this, "rectify/image");
   subscribeToCamera(qos_profile);
 }
 
@@ -123,7 +123,7 @@ void RectifyNode::imageCb(
 
   // This will be true if D is empty/zero sized
   if (zero_distortion) {
-    pub_rect_.publish(image_msg);
+    pub_rect_.publish(image_msg,info_msg);
     TRACEPOINT(
       image_proc_rectify_fini,
       static_cast<const void *>(this),
@@ -142,10 +142,27 @@ void RectifyNode::imageCb(
   // Rectify and publish
   model_.rectifyImage(image, rect, interpolation);
 
+  sensor_msgs::msg::CameraInfo::SharedPtr ci(new sensor_msgs::msg::CameraInfo(*info_msg)); // original CameraInfo
+  cv::Mat_<float> intrinsics(3,3,0.0f), distortion(1,ci->d.size(), 0.0f);
+  intrinsics(0,0)=ci->k[0]; intrinsics(0,2)=ci->k[2];
+  intrinsics(1,1)=ci->k[4]; intrinsics(1,2)=ci->k[5];
+  intrinsics(2,2)=ci->k[8];
+  for (size_t i=0;i<ci->d.size();i++) {
+      distortion(0,i) = ci->d[i];
+  }
+  cv::Rect new_roi;
+  cv::Size S(ci->width,ci->height);
+  cv::Mat_<float> new_intrinsics = cv::getOptimalNewCameraMatrix(intrinsics,distortion,S,0,S,&new_roi);
+  ci->k[0]=new_intrinsics(0,0); ci->k[2]=new_intrinsics(0,2);
+  ci->k[4]=new_intrinsics(1,1); ci->k[5]=new_intrinsics(1,2);
+  ci->k[8]=new_intrinsics(2,2);
+  ci->d.clear();
+  ci->d.assign(5,0.0);
+
   // Allocate new rectified image message
   sensor_msgs::msg::Image::SharedPtr rect_msg =
     cv_bridge::CvImage(image_msg->header, image_msg->encoding, rect).toImageMsg();
-  pub_rect_.publish(rect_msg);
+  pub_rect_.publish(rect_msg,ci);
 
   TRACEPOINT(
     image_proc_rectify_fini,
