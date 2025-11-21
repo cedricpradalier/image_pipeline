@@ -66,7 +66,6 @@ def generate_launch_description():
             remappings=[
                 ('image', [LaunchConfiguration('namespace'),'/debayer/image_mono']),
                 ('camera_info', '/camera_info'),
-                #('image_rect', 'rect_mono/image')
             ],
         ),
         ComposableNode(
@@ -77,7 +76,6 @@ def generate_launch_description():
             # Remap subscribers and publishers
             remappings=[
                 ('image', [LaunchConfiguration('namespace'),'/debayer/image_color']),
-                #('image_rect', 'rect_color'),
                 ('camera_info', '/camera_info')
             ],
         )
